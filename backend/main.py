@@ -7,7 +7,7 @@ from backend import models, schemas
 from backend.database import engine, SessionLocal, Base
 
 # create tables if not present (dev convenience)
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) # removing this line because I'm using Alembic for migrations
 
 app = FastAPI(
     title="Solar PV Emulator Backend",
