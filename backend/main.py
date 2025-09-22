@@ -3,8 +3,12 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
+import numpy as np
+
 from backend import models, schemas
 from backend.database import engine, SessionLocal, Base
+
+import pvlib # will user for modeling the physics of the pv modules
 
 # create tables if not present (dev convenience)
 # Base.metadata.create_all(bind=engine) # removing this line because I'm using Alembic for migrations
@@ -87,84 +91,185 @@ def delete_module(module_id: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------
-# Simulation endpoint (placeholder physics, will replace with pvlib)
+# Simulation endpoint (pvlib single-diode model)
 # ---------------------------
+
+
 
 @app.post("/simulate_iv_curve/", response_model=schemas.SimulationResponse)
 def generate_iv_curve(data: schemas.SimulationInput, db: Session = Depends(get_db)):
+    import numpy as np
+    import pvlib
+    from pvlib.ivtools import sdm
+
     # fetch module from DB
     mod = db.query(models.PVModule).filter(models.PVModule.id == data.module_id).first()
     if not mod:
         raise HTTPException(status_code=404, detail="Module not found")
 
-    # Use STC by default or override with provided env conditions
-    if data.use_environmental_conditions:
-        G = data.irradiance if data.irradiance is not None else 1000.0
-        T = data.temperature if data.temperature is not None else 25.0
-        mode = "environment"
-    else:
-        G = 1000.0
-        T = 25.0
-        mode = "default"
+    # Environmental conditions
+    G = data.irradiance if data.use_environmental_conditions and data.irradiance is not None else 1000.0
+    T = data.temperature if data.use_environmental_conditions and data.temperature is not None else 25.0
 
-    # Basic adjustments (placeholder):
-    # - scale Isc roughly with irradiance
-    # - adjust Voc linearly with temperature via kv (V/°C)
-    # - adjust Imp and Vmp crudely (imp scales with G; vmp shifts with kv)
-    kv = mod.kv if mod.kv is not None else 0.0
-    ki = mod.ki if mod.ki is not None else 0.0
+    try:
+        # Handle edge case: zero irradiance
+        if G <= 0:
+            # Return a flat curve with zero current
+            voltages = np.linspace(0, mod.voc, 200)
+            currents = np.zeros_like(voltages)
 
-    Isc_adj = mod.isc * (G / 1000.0) + ki * (T - 25.0)
-    Voc_adj = mod.voc + kv * (T - 25.0)
-    # crudely adjust Vmp/Imp
-    Vmp_adj = mod.vmp + kv * (T - 25.0)
-    Imp_adj = mod.imp * (G / 1000.0) + ki * (T - 25.0)
+            iv_curve = [[float(round(V, 6)), float(round(I, 6))] for V, I in zip(voltages, currents)]
+            pv_curve = [[float(round(V, 6)), float(round(V * I, 6))] for V, I in zip(voltages, currents)]
 
-    # numeric safety
-    if Voc_adj <= 0:
-        Voc_adj = max(0.1, mod.voc)
-    if Vmp_adj <= 0:
-        Vmp_adj = min(Voc_adj * 0.9, mod.vmp)
+            summary = {
+                "Voc": 0.0,
+                "Isc": 0.0,
+                "Vmp": 0.0,
+                "Imp": 0.0,
+                "Pmp": 0.0
+            }
 
-    # generate IV curve with piecewise linear approximation (good enough for plotting)
-    n_points = 50
-    iv_curve = []
-    if Voc_adj <= 0.0:
-        raise HTTPException(status_code=500, detail="Invalid Voc after adjustment")
+            resp = {
+                "module_id": data.module_id,
+                "mode": "environment" if data.use_environmental_conditions else "default",
+                "irradiance": G,
+                "temperature": T,
+                "iv_curve": iv_curve,
+                "pv_curve": pv_curve,
+                "summary": summary
+            }
+            return resp
 
-    step = Voc_adj / (n_points - 1)
-    for i in range(n_points):
-        V = step * i
-        if V <= Vmp_adj and Vmp_adj > 0:
-            # linear interpolation from (0, Isc_adj) to (Vmp_adj, Imp_adj)
-            I = Isc_adj + (Imp_adj - Isc_adj) * (V / Vmp_adj)
-        else:
-            # linear interpolation from (Vmp_adj, Imp_adj) to (Voc_adj, 0)
-            if Voc_adj - Vmp_adj > 1e-6:
-                I = Imp_adj * (1.0 - (V - Vmp_adj) / (Voc_adj - Vmp_adj))
-            else:
-                I = max(0.0, Imp_adj - (Imp_adj / (Voc_adj + 1e-6)) * V)
-        if I < 0:
-            I = 0.0
-        iv_curve.append([round(V, 6), round(I, 6)])
+        # Debug: Print module parameters
+        print(f"DEBUG: Module params - Voc: {mod.voc}, Isc: {mod.isc}, Vmp: {mod.vmp}, Imp: {mod.imp}")
+        print(f"DEBUG: Environmental conditions - G: {G}, T: {T}")
 
-    pv_curve = [[round(v, 6), round(v * i, 6)] for v, i in iv_curve]
+        # Step 1: Extract SDM parameters at reference conditions (STC)
+        try:
+            I_L_ref, I_o_ref, R_s, R_sh_ref, a_ref, Adjust = sdm.fit_cec_sam(
+                celltype='monoSi',
+                v_mp=mod.vmp,
+                i_mp=mod.imp,
+                v_oc=mod.voc,
+                i_sc=mod.isc,
+                alpha_sc=mod.ki,
+                beta_voc=mod.kv,
+                gamma_pmp=-0.35,
+                cells_in_series=mod.ns,
+                temp_ref=25
+            )
+            print(f"DEBUG: SDM fit results - I_L_ref: {I_L_ref}, I_o_ref: {I_o_ref}, R_s: {R_s}, R_sh_ref: {R_sh_ref}, a_ref: {a_ref}, Adjust: {Adjust}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"SDM fit_cec_sam failed: {str(e)}")
 
+        # Step 2: Scale to actual irradiance and temperature
+        try:
+            IL, I0, Rs, Rsh, nNsVth = pvlib.pvsystem.calcparams_desoto(
+                effective_irradiance=G,
+                temp_cell=T,
+                alpha_sc=mod.ki,  # Use the original temperature coefficient from the module, not Adjust
+                a_ref=a_ref,
+                I_L_ref=I_L_ref,
+                I_o_ref=I_o_ref,
+                R_sh_ref=R_sh_ref,
+                R_s=R_s,
+                EgRef=1.121,
+                dEgdT=-0.0002677
+            )
+            print(f"DEBUG: Scaled params - IL: {IL}, I0: {I0}, Rs: {Rs}, Rsh: {Rsh}, nNsVth: {nNsVth}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"calcparams_desoto failed: {str(e)}")
+
+        # Step 3: Get the 5 key points
+        try:
+            sdm_out = pvlib.pvsystem.singlediode(
+                photocurrent=IL,
+                saturation_current=I0,
+                resistance_series=Rs,
+                resistance_shunt=Rsh,
+                nNsVth=nNsVth,
+                method='lambertw'
+            )
+            print(f"DEBUG: singlediode results - Voc: {sdm_out['v_oc']}, Isc: {sdm_out['i_sc']}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"singlediode failed: {str(e)}")
+
+        # Debug: Check if singlediode output is valid
+        voc_calc = sdm_out['v_oc']
+        if not np.isfinite(voc_calc) or voc_calc <= 0:
+            raise HTTPException(status_code=500, detail=f"Invalid Voc calculated: {voc_calc}. Check module parameters and environmental conditions.")
+
+        # Step 4: Generate full IV curve using bishop88
+        from pvlib.singlediode import bishop88
+
+        # Create voltage array from 0 to Voc
+        voltage_points = np.linspace(0, voc_calc, 200)
+        print(f"DEBUG: Voltage range for bishop88: 0 to {voc_calc}")
+
+        # bishop88 returns a tuple: (currents, voltages, power)
+        try:
+            currents, voltages, power = bishop88(
+                diode_voltage=voltage_points,
+                photocurrent=IL,
+                saturation_current=I0,
+                resistance_series=Rs,
+                resistance_shunt=Rsh,
+                nNsVth=nNsVth
+            )
+            print(f"DEBUG: bishop88 returned arrays of length: {len(currents)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"bishop88 failed: {str(e)}")
+
+        # Ensure arrays are numpy arrays and handle any potential issues
+        voltages = np.asarray(voltages)
+        currents = np.asarray(currents)
+
+        # Filter out any invalid values (NaN, inf, negative currents)
+        valid_mask = (
+            np.isfinite(voltages) &
+            np.isfinite(currents) &
+            (voltages >= 0) &
+            (currents >= 0)
+        )
+
+        voltages = voltages[valid_mask]
+        currents = currents[valid_mask]
+
+        # Ensure we have some valid points
+        if len(voltages) == 0:
+            raise ValueError("No valid IV curve points generated")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SDM calculation failed: {str(e)}")
+
+    # Extract IV and PV points
+    iv_curve = [[float(round(V, 6)), float(round(I, 6))] for V, I in zip(voltages, currents)]
+    pv_curve = [[float(round(V, 6)), float(round(V * I, 6))] for V, I in zip(voltages, currents)]
+
+    # Max power point
+    P = voltages * currents
+    idx_max = np.argmax(P)
+    Vmp = float(round(voltages[idx_max], 6))
+    Imp = float(round(currents[idx_max], 6))
+    Pmp = float(round(P[idx_max], 6))
+
+    # Use the calculated values from the single diode model
     summary = {
-        "Voc": round(Voc_adj, 6),
-        "Isc": round(Isc_adj, 6),
-        "Vmp": round(Vmp_adj, 6),
-        "Imp": round(Imp_adj, 6),
-        "Pmp": round(Vmp_adj * Imp_adj, 6),
+        "Voc": float(round(sdm_out['v_oc'], 6)),
+        "Isc": float(round(sdm_out['i_sc'], 6)),
+        "Vmp": Vmp,
+        "Imp": Imp,
+        "Pmp": Pmp
     }
 
     resp = {
         "module_id": data.module_id,
-        "mode": mode,
+        "mode": "environment" if data.use_environmental_conditions else "default",
         "irradiance": G,
         "temperature": T,
         "iv_curve": iv_curve,
         "pv_curve": pv_curve,
-        "summary": summary,
+        "summary": summary
     }
+
     return resp

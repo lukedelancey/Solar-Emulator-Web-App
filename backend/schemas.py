@@ -49,8 +49,8 @@ class SimulationSummary(BaseModel):
 class SimulationResponse(BaseModel):
     module_id: int
     mode: str
-    irradiance: Optional[float]
-    temperature: Optional[float]
-    iv_curve: List[List[float]]     # [[V, I], ...]
-    pv_curve: List[List[float]]     # [[V, P], ...]
-    summary: SimulationSummary
+    irradiance: Optional[float] = None
+    temperature: Optional[float] = None
+    iv_curve: List[List[float]] = []
+    pv_curve: List[List[float]] = []
+    summary: Optional[SimulationSummary] = None
