@@ -1,26 +1,21 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import NavBar from './components/NavBar';
+import StatusBar from './components/StatusBar';
 
-function App() {
+// TODO: Implement React Router, authentication context, and main application layout
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <StatusBar />
+      <NavBar />
+      <main className="container mx-auto">
+        <div className="p-6">
+          <h1 className="text-3xl font-bold text-center">Solar PV Emulator Web App</h1>
+          <p className="text-center mt-4">Application placeholder - routing to be implemented</p>
+        </div>
+      </main>
     </div>
   );
-}
+};
 
 export default App;
