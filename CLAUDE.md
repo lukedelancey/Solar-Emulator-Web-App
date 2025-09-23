@@ -83,8 +83,175 @@ Comprehensive pytest suite with:
 - **Performance Validation**: Monotonic IV curves, realistic temperature/irradiance effects
 - **Edge Case Handling**: Zero irradiance, invalid modules, extreme conditions
 
-### Frontend Status
-The frontend directory exists but is empty - web interface implementation is pending.
+### Frontend Stack
+- **React 18**: Component-based UI framework with TypeScript
+- **React Router**: Client-side routing for SPA navigation
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **Axios**: HTTP client for API communication
+- **Recharts/Plotly**: Interactive data visualization for IV/PV curves
+- **React Hook Form + Yup**: Form handling with validation
+- **WebSockets**: Real-time communication for ESP32 device integration
+
+## Frontend Architecture
+
+### Development Setup
+```bash
+# Navigate to frontend directory
+cd frontend/
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run linting
+npm run lint
+
+# Run type checking
+npm run type-check
+```
+
+### Page Structure
+1. **PV Model Simulation** (`/simulation`)
+   - Module selection dropdown with database integration
+   - Environmental parameter inputs (temperature, irradiance)
+   - Interactive IV/PV curve visualization with hover tooltips
+   - Real-time plot generation and updates
+
+2. **PV Modules Database** (`/modules`)
+   - CRUD operations for user's PV module collection
+   - Add module popup form with parameter validation
+   - Bulk delete functionality with selection interface
+   - Real-time list updates after operations
+
+3. **PV Module Emulation** (`/emulation`)
+   - ESP32 device pairing via Wi-Fi
+   - Real-time emulation control (start/stop)
+   - Live IV curve plotting with theoretical vs actual operating points
+   - WebSocket-based data streaming from MCU
+
+4. **About/Information** (`/about`)
+   - Project documentation and user guides
+   - ESP32 connection instructions
+   - PDF hosting for reports and documentation
+
+5. **Authentication** (`/auth`)
+   - Sign up and sign in forms with validation
+   - User session management
+   - Protected route handling
+
+### Component Architecture
+```
+src/
+├── components/
+│   ├── common/           # Reusable UI components
+│   │   ├── Header.tsx    # Navigation and auth status
+│   │   ├── Layout.tsx    # Page layout wrapper
+│   │   └── StatusBar.tsx # Connection and auth indicators
+│   ├── charts/           # Visualization components
+│   │   ├── IVCurve.tsx   # IV curve plotting
+│   │   └── PVCurve.tsx   # PV curve plotting
+│   ├── forms/            # Form components
+│   │   ├── ModuleForm.tsx    # Add/edit module forms
+│   │   ├── AuthForms.tsx     # Login/signup forms
+│   │   └── SimulationForm.tsx # Environmental parameter inputs
+│   └── modals/           # Popup components
+├── pages/                # Route components
+├── hooks/                # Custom React hooks
+├── services/             # API and WebSocket services
+├── types/                # TypeScript type definitions
+├── utils/                # Helper functions
+└── contexts/             # React contexts for state management
+```
+
+### API Integration Contract
+**Base URL**: `http://localhost:8000`
+
+**Authentication Endpoints**:
+- `POST /auth/signup` - User registration
+- `POST /auth/signin` - User authentication
+- `POST /auth/signout` - User logout
+
+**Module Management**:
+- `GET /modules/` - Fetch user's modules
+- `POST /modules/` - Create new module
+- `PUT /modules/{id}` - Update existing module
+- `DELETE /modules/{id}` - Delete module
+
+**Simulation**:
+- `POST /simulate_iv_curve/` - Generate IV curves
+  ```typescript
+  interface SimulationRequest {
+    module_id: number;
+    temperature?: number;  // Default: 25°C
+    irradiance?: number;   // Default: 1000 W/m²
+  }
+
+  interface SimulationResponse {
+    voltage: number[];
+    current: number[];
+    power: number[];
+    voc: number;
+    isc: number;
+    vmp: number;
+    imp: number;
+    pmp: number;
+  }
+  ```
+
+**WebSocket Events** (ESP32 Integration):
+- `device_connect` - ESP32 pairing request
+- `device_disconnect` - ESP32 disconnection
+- `emulation_start` - Begin data streaming
+- `emulation_stop` - End data streaming
+- `operating_point` - Real-time V/I data from MCU
+
+### State Management
+- **User Context**: Authentication state and user data
+- **Module Context**: PV module collection and CRUD operations
+- **Device Context**: ESP32 connection status and real-time data
+- **Simulation Context**: Current simulation parameters and results
+
+### Validation Schema (Yup)
+```typescript
+// Module validation
+const moduleSchema = {
+  name: string().required(),
+  voc: number().positive().required(),
+  isc: number().positive().required(),
+  vmp: number().positive().required(),
+  imp: number().positive().required(),
+  ns: number().integer().positive().required(),
+  kv: number().required(),
+  ki: number().required()
+}
+
+// Environmental validation
+const simulationSchema = {
+  temperature: number().min(-40).max(85),  // °C
+  irradiance: number().min(0).max(1500)    // W/m²
+}
+```
+
+### Real-time Features
+- **Live Plotting**: WebSocket updates for emulation operating points
+- **Device Status**: Real-time ESP32 connection monitoring
+- **Data Streaming**: Continuous V/I measurements during emulation
+- **Auto-refresh**: Database updates after CRUD operations
+
+### Frontend Development Notes
+- **TypeScript**: Strict type checking enabled for robust development
+- **Responsive Design**: Mobile-first approach with Tailwind breakpoints
+- **Error Boundaries**: Component-level error handling for graceful failures
+- **Loading States**: Skeleton screens and spinners for async operations
+- **Protected Routes**: Authentication-based route access control
+- **Performance**: React.memo and useMemo for expensive re-renders
+- **Accessibility**: ARIA labels and keyboard navigation support
+- **Testing**: Unit tests with Jest and React Testing Library
 
 ## Key Development Notes
 
