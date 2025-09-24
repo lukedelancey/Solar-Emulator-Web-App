@@ -6,6 +6,7 @@ import SimulationPage from './pages/SimulationPage';
 import DatabasePage from './pages/DatabasePage';
 import EmulationPage from './pages/EmulationPage';
 import AboutPage from './pages/AboutPage';
+import ApiTestPageFixed from './components/ApiTestPageFixed';
 
 const App: React.FC = () => {
   return (
@@ -22,6 +23,10 @@ const App: React.FC = () => {
               <Route path="/modules" element={<DatabasePage />} />
               <Route path="/emulation" element={<EmulationPage />} />
               <Route path="/about" element={<AboutPage />} />
+              {/* Development-only API test page */}
+              {process.env.NODE_ENV === 'development' && (
+                <Route path="/api-test" element={<ApiTestPageFixed />} />
+              )}
               <Route path="*" element={<Navigate to="/simulation" replace />} />
             </Routes>
           </div>

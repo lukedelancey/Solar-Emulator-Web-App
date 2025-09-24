@@ -1,12 +1,13 @@
 # backend/main.py
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
 import numpy as np
 
-from backend import models, schemas
-from backend.database import engine, SessionLocal, Base
+import models, schemas
+from database import engine, SessionLocal, Base
 
 import pvlib # will user for modeling the physics of the pv modules
 
@@ -17,6 +18,19 @@ app = FastAPI(
     title="Solar PV Emulator Backend",
     description="API backend for PV emulator web app",
     version="0.1.0"
+)
+
+# Add CORS middleware to allow frontend connections
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # React dev server
+        "http://127.0.0.1:3000",  # React dev server (alternative)
+        "http://localhost:3001",  # Backup port
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Dependency to provide a DB session per request
