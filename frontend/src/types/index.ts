@@ -1,5 +1,18 @@
 // TypeScript interfaces for PV modules, simulation data, and API responses
 
+// Valid cell technology types
+export const VALID_CELLTYPES = [
+  'monoSi',
+  'multiSi',
+  'polySi',
+  'cis',
+  'cigs',
+  'cdte',
+  'amorphous'
+] as const;
+
+export type CellType = typeof VALID_CELLTYPES[number];
+
 // Base PV Module interface (from database)
 export interface PVModule {
   id: number;
@@ -9,8 +22,10 @@ export interface PVModule {
   vmp: number;  // Voltage at maximum power (V)
   imp: number;  // Current at maximum power (A)
   ns: number;   // Number of cells in series
-  kv: number;   // Temperature coefficient of voltage (V/°C)
-  ki: number;   // Temperature coefficient of current (A/°C)
+  kv: number;   // Temperature coefficient of voltage [%/°C]
+  ki: number;   // Temperature coefficient of current [%/°C]
+  celltype: string;  // Cell technology type
+  gamma_pmp: number;  // Temperature coefficient of power [%/°C]
 }
 
 // For creating new modules (no id field)
@@ -23,6 +38,8 @@ export interface PVModuleCreate {
   ns: number;
   kv: number;
   ki: number;
+  celltype: string;
+  gamma_pmp: number;
 }
 
 // For updating modules (all fields optional except id)
@@ -35,6 +52,8 @@ export interface PVModuleUpdate {
   ns?: number;
   kv?: number;
   ki?: number;
+  celltype?: string;
+  gamma_pmp?: number;
 }
 
 // API response for module operations

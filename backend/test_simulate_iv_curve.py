@@ -123,7 +123,9 @@ def create_test_module(db_session, config):
         imp=config["imp"],
         ns=config["ns"],
         kv=config["kv"],
-        ki=config["ki"]
+        ki=config["ki"],
+        celltype=config["celltype"],
+        gamma_pmp=config.get("gamma_pmp", -0.35)
     )
     db_session.add(mod)
     db_session.commit()

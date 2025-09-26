@@ -27,13 +27,15 @@ const ApiTestPage: React.FC = () => {
   // Sample test data
   const sampleModuleData: PVModuleCreate = {
     name: `Test Module ${Date.now()}`,
-    voc: 45.6,
-    isc: 9.2,
-    vmp: 37.8,
+    voc: 36.3,
+    isc: 8.85,
+    vmp: 29.4,
     imp: 8.5,
-    ns: 72,
-    kv: -0.35,
-    ki: 0.045,
+    ns: 60,
+    kv: -0.32,
+    ki: 0.06,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
   };
 
   const addResult = useCallback((operation: string, success: boolean, data?: any, error?: string) => {

@@ -14,6 +14,8 @@ export const mockPVModule: PVModule = {
   ns: 72,
   kv: -0.35,
   ki: 0.045,
+  celltype: 'monoSi',
+  gamma_pmp: -0.35,
 };
 
 export const mockPVModuleList: PVModule[] = [
@@ -28,6 +30,8 @@ export const mockPVModuleList: PVModule[] = [
     ns: 96,
     kv: -0.27,
     ki: 0.061,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
   },
   {
     id: 3,
@@ -39,6 +43,8 @@ export const mockPVModuleList: PVModule[] = [
     ns: 60,
     kv: -0.31,
     ki: 0.053,
+    celltype: 'multiSi',
+    gamma_pmp: -0.35,
   },
 ];
 
@@ -51,6 +57,8 @@ export const mockPVModuleCreate: PVModuleCreate = {
   ns: 60,
   kv: -0.32,
   ki: 0.048,
+  celltype: 'monoSi',
+  gamma_pmp: -0.35,
 };
 
 export const mockPVModuleUpdate: PVModuleUpdate = {
@@ -69,6 +77,8 @@ export const invalidPVModuleCreate = {
     ns: 60,
     kv: -0.32,
     ki: 0.048,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
   },
   invalid_numeric: {
     name: 'Test Panel',
@@ -79,6 +89,8 @@ export const invalidPVModuleCreate = {
     ns: 60,
     kv: -0.32,
     ki: 0.048,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
   },
   negative_values: {
     name: 'Test Panel',
@@ -89,6 +101,8 @@ export const invalidPVModuleCreate = {
     ns: 60,
     kv: -0.32,
     ki: 0.048,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
   },
   invalid_ns: {
     name: 'Test Panel',
@@ -99,6 +113,20 @@ export const invalidPVModuleCreate = {
     ns: 60.5, // Should be integer
     kv: -0.32,
     ki: 0.048,
+    celltype: 'monoSi',
+    gamma_pmp: -0.35,
+  },
+  invalid_celltype: {
+    name: 'Test Panel',
+    voc: 42.0,
+    isc: 8.5,
+    vmp: 35.0,
+    imp: 7.8,
+    ns: 60,
+    kv: -0.32,
+    ki: 0.048,
+    celltype: 'invalidType' as any, // Should be one of valid celltypes
+    gamma_pmp: -0.35,
   },
 };
 

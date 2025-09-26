@@ -9,8 +9,10 @@ class PVModuleBase(BaseModel):
     vmp: float
     imp: float
     ns: int
-    kv: Optional[float] = None # Voc temp coeff (V/°C)
-    ki: Optional[float] = None # Isc temp coeff (A/°C)
+    kv: float  # Voc temp coeff [%/°C]
+    ki: float  # Isc temp coeff [%/°C]
+    celltype: str = 'monoSi'  # Cell technology type
+    gamma_pmp: float = -0.35  # Temperature coefficient of power [%/°C]
 
 class PVModuleCreate(PVModuleBase):
     """Schema for creating new PV modules"""
@@ -26,6 +28,8 @@ class PVModuleUpdate(BaseModel):
     ns: Optional[int] = None
     kv: Optional[float] = None
     ki: Optional[float] = None
+    celltype: Optional[str] = None
+    gamma_pmp: Optional[float] = None
 
 class PVModuleResponse(PVModuleBase):
     id: int

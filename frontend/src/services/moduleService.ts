@@ -8,6 +8,7 @@ import {
   ModuleQueryParams,
   SimulationInput,
   SimulationResponse,
+  VALID_CELLTYPES,
 } from '../types';
 
 /**
@@ -57,7 +58,7 @@ export const getModuleById = async (moduleId: number): Promise<PVModule> => {
 export const createModule = async (moduleData: PVModuleCreate): Promise<PVModule> => {
   try {
     // Validate required fields
-    const requiredFields: (keyof PVModuleCreate)[] = ['name', 'voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki'];
+    const requiredFields: (keyof PVModuleCreate)[] = ['name', 'voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki', 'celltype', 'gamma_pmp'];
     const missingFields = requiredFields.filter(field =>
       moduleData[field] === undefined || moduleData[field] === null || moduleData[field] === ''
     );
@@ -67,7 +68,7 @@ export const createModule = async (moduleData: PVModuleCreate): Promise<PVModule
     }
 
     // Validate numeric values
-    const numericFields: (keyof PVModuleCreate)[] = ['voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki'];
+    const numericFields: (keyof PVModuleCreate)[] = ['voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki', 'gamma_pmp'];
     const invalidFields = numericFields.filter(field =>
       typeof moduleData[field] !== 'number' || isNaN(moduleData[field] as number)
     );
@@ -87,6 +88,11 @@ export const createModule = async (moduleData: PVModuleCreate): Promise<PVModule
     // Validate integer values
     if (!Number.isInteger(moduleData.ns) || moduleData.ns <= 0) {
       throw new Error('Number of cells in series (ns) must be a positive integer.');
+    }
+
+    // Validate celltype
+    if (!VALID_CELLTYPES.includes(moduleData.celltype as any)) {
+      throw new Error(`Invalid celltype. Must be one of: ${VALID_CELLTYPES.join(', ')}`);
     }
 
     const response = await post<PVModuleResponse, PVModuleCreate>('/modules', moduleData);
@@ -114,7 +120,7 @@ export const createModule = async (moduleData: PVModuleCreate): Promise<PVModule
 export const updateModule = async (moduleId: number, updateData: PVModuleUpdate): Promise<PVModule> => {
   try {
     // Validate numeric values if provided
-    const numericFields: (keyof PVModuleUpdate)[] = ['voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki'];
+    const numericFields: (keyof PVModuleUpdate)[] = ['voc', 'isc', 'vmp', 'imp', 'ns', 'kv', 'ki', 'gamma_pmp'];
     const invalidFields = numericFields.filter(field =>
       updateData[field] !== undefined &&
       (typeof updateData[field] !== 'number' || isNaN(updateData[field] as number))
@@ -137,6 +143,11 @@ export const updateModule = async (moduleId: number, updateData: PVModuleUpdate)
     // Validate integer values for ns
     if (updateData.ns !== undefined && (!Number.isInteger(updateData.ns) || updateData.ns <= 0)) {
       throw new Error('Number of cells in series (ns) must be a positive integer.');
+    }
+
+    // Validate celltype if provided
+    if (updateData.celltype !== undefined && !VALID_CELLTYPES.includes(updateData.celltype as any)) {
+      throw new Error(`Invalid celltype. Must be one of: ${VALID_CELLTYPES.join(', ')}`);
     }
 
     const response = await put<PVModuleResponse, PVModuleUpdate>(`/modules/${moduleId}`, updateData);

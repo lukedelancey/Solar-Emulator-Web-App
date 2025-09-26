@@ -53,6 +53,11 @@ def read_root():
 
 @app.post("/modules", response_model=schemas.PVModuleResponse, status_code=status.HTTP_201_CREATED)
 def create_module(module_in: schemas.PVModuleCreate, db: Session = Depends(get_db)):
+    # Validate celltype
+    valid_celltypes = ['monoSi', 'multiSi', 'polySi', 'cis', 'cigs', 'cdte', 'amorphous']
+    if module_in.celltype not in valid_celltypes:
+        raise HTTPException(status_code=400, detail=f"Invalid celltype. Must be one of: {', '.join(valid_celltypes)}")
+
     # Prevent duplicate names (simple check)
     existing = db.query(models.PVModule).filter(models.PVModule.name == module_in.name).first()
     if existing:
@@ -86,6 +91,13 @@ def update_module(module_id: int, module_in: schemas.PVModuleUpdate, db: Session
         raise HTTPException(status_code=404, detail="Module not found")
 
     update_data = module_in.dict(exclude_unset=True)
+
+    # Validate celltype if it's being updated
+    if 'celltype' in update_data:
+        valid_celltypes = ['monoSi', 'multiSi', 'polySi', 'cis', 'cigs', 'cdte', 'amorphous']
+        if update_data['celltype'] not in valid_celltypes:
+            raise HTTPException(status_code=400, detail=f"Invalid celltype. Must be one of: {', '.join(valid_celltypes)}")
+
     for key, value in update_data.items():
         setattr(mod, key, value)
     db.add(mod)
@@ -161,14 +173,14 @@ def generate_iv_curve(data: schemas.SimulationInput, db: Session = Depends(get_d
         # Step 1: Extract SDM parameters at reference conditions (STC)
         try:
             I_L_ref, I_o_ref, R_s, R_sh_ref, a_ref, Adjust = sdm.fit_cec_sam(
-                celltype='monoSi',
+                celltype=mod.celltype,
                 v_mp=mod.vmp,
                 i_mp=mod.imp,
                 v_oc=mod.voc,
                 i_sc=mod.isc,
-                alpha_sc=mod.ki,
-                beta_voc=mod.kv,
-                gamma_pmp=-0.35,
+                alpha_sc=(mod.ki*mod.isc/100),  # Convert %/C to A/C
+                beta_voc=(mod.kv*mod.voc/100),  # Convert %/C to V/C
+                gamma_pmp=mod.gamma_pmp,
                 cells_in_series=mod.ns,
                 temp_ref=25
             )

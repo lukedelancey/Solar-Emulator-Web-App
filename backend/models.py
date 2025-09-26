@@ -24,8 +24,10 @@ class PVModule(Base):
     vmp = Column(Float, nullable=False)
     imp = Column(Float, nullable=False)
     ns = Column(Integer, nullable=False)
-    kv = Column(Float, nullable=True)
-    ki = Column(Float, nullable=True)
+    kv = Column(Float, nullable=False)  # Voc temp coeff [%/°C]
+    ki = Column(Float, nullable=False)  # Isc temp coeff [%/°C]
+    celltype = Column(String(32), nullable=False, default='monoSi')  # Cell technology type
+    gamma_pmp = Column(Float, nullable=False, default=-0.35)  # Temperature coefficient of power [%/°C]
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="modules")

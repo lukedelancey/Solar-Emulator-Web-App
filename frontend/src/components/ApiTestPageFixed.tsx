@@ -17,6 +17,8 @@ interface PVModuleCreate {
   ns: number;
   kv: number;
   ki: number;
+  celltype: string;
+  gamma_pmp: number;
 }
 
 const ApiTestPageFixed: React.FC = () => {
@@ -93,13 +95,15 @@ const ApiTestPageFixed: React.FC = () => {
   const testCreateModule = () => runTest('Create Module', async () => {
     const sampleModule: PVModuleCreate = {
       name: `Test Module ${Date.now()}`,
-      voc: 45.6,
-      isc: 9.2,
-      vmp: 37.8,
+      voc: 36.3,
+      isc: 8.85,
+      vmp: 29.4,
       imp: 8.5,
-      ns: 72,
-      kv: -0.35,
-      ki: 0.045,
+      ns: 60,
+      kv: -0.32,
+      ki: 0.06,
+      celltype: 'monoSi',
+      gamma_pmp: -0.35,
     };
     return await apiCall('POST', '/modules', sampleModule);
   });
@@ -113,7 +117,8 @@ const ApiTestPageFixed: React.FC = () => {
     // First create a test module to delete
     const moduleToDelete = await apiCall('POST', '/modules', {
       name: `Temp Delete Test ${Date.now()}`,
-      voc: 45.0, isc: 9.0, vmp: 37.0, imp: 8.0, ns: 72, kv: -0.35, ki: 0.045
+      voc: 36.3, isc: 8.85, vmp: 29.4, imp: 8.5, ns: 60, kv: -0.32, ki: 0.06,
+      celltype: 'monoSi', gamma_pmp: -0.35
     });
     // Then delete it
     return await apiCall('DELETE', `/modules/${moduleToDelete.id}`);
