@@ -230,7 +230,6 @@ def generate_iv_curve(data: schemas.SimulationInput, db: Session = Depends(get_d
 
         # Create voltage array from 0 to Voc
         voltage_points = np.linspace(0, voc_calc, 200)
-        print(f"DEBUG: Voltage range for bishop88: 0 to {voc_calc}")
 
         # bishop88 returns a tuple: (currents, voltages, power)
         try:
@@ -242,7 +241,6 @@ def generate_iv_curve(data: schemas.SimulationInput, db: Session = Depends(get_d
                 resistance_shunt=Rsh,
                 nNsVth=nNsVth
             )
-            print(f"DEBUG: bishop88 returned arrays of length: {len(currents)}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"bishop88 failed: {str(e)}")
 
@@ -251,15 +249,27 @@ def generate_iv_curve(data: schemas.SimulationInput, db: Session = Depends(get_d
         currents = np.asarray(currents)
 
         # Filter out any invalid values (NaN, inf, negative currents)
+        # Note: current = 0 is valid (occurs at Voc), so we use >= 0
         valid_mask = (
             np.isfinite(voltages) &
             np.isfinite(currents) &
             (voltages >= 0) &
-            (currents >= 0)
+            (currents >= 0)  # This includes current = 0 (Voc point)
         )
 
         voltages = voltages[valid_mask]
         currents = currents[valid_mask]
+
+        # Ensure we have the complete curve by adding endpoints if missing
+        # Add Isc point (V=0, I=Isc) if not present at exactly 0V
+        if len(voltages) == 0 or voltages[0] > 0.0001:  # If first point is not at exactly 0V
+            voltages = np.insert(voltages, 0, 0.0)
+            currents = np.insert(currents, 0, sdm_out['i_sc'])
+
+        # Add Voc point (V=Voc, I=0) if not present at exactly Voc
+        if len(voltages) == 0 or voltages[-1] < voc_calc - 0.001:  # If last point is not at ~Voc
+            voltages = np.append(voltages, voc_calc)
+            currents = np.append(currents, 0.0)
 
         # Ensure we have some valid points
         if len(voltages) == 0:
