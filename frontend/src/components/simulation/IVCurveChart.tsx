@@ -33,6 +33,16 @@ const IVCurveChart: React.FC<IVCurveChartProps> = ({ simulationData, isLoading =
   const isc = { voltage: 0, current: simulationData.summary.Isc };
   const mpp = { voltage: simulationData.summary.Vmp, current: simulationData.summary.Imp };
 
+  // Calculate domain to ensure all key points are visible
+  const maxCurrent = Math.max(
+    ...chartData.map(d => d.current),
+    simulationData.summary.Isc
+  );
+  const maxVoltage = Math.max(
+    ...chartData.map(d => d.voltage),
+    simulationData.summary.Voc
+  );
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const voltage = Number(label).toFixed(2);
@@ -87,7 +97,7 @@ const IVCurveChart: React.FC<IVCurveChartProps> = ({ simulationData, isLoading =
       </div>
 
       {/* Chart */}
-      <div className="h-96 w-full">
+      <div className="h-[398px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -99,7 +109,7 @@ const IVCurveChart: React.FC<IVCurveChartProps> = ({ simulationData, isLoading =
               dataKey="voltage"
               type="number"
               scale="linear"
-              domain={[0, 'dataMax']}
+              domain={[0, maxVoltage * 1.02]}
               label={{ value: 'Voltage (V)', position: 'insideBottom', offset: -10 }}
               tick={{ fontSize: 12 }}
               tickFormatter={(value) => value.toFixed(1)}
@@ -107,7 +117,7 @@ const IVCurveChart: React.FC<IVCurveChartProps> = ({ simulationData, isLoading =
 
             <YAxis
               dataKey="current"
-              domain={[0, 'dataMax']}
+              domain={[0, maxCurrent * 1.02]}
               label={{ value: 'Current (A)', angle: -90, position: 'insideLeft' }}
               tick={{ fontSize: 12 }}
               tickFormatter={(value) => value.toFixed(2)}

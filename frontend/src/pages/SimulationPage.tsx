@@ -91,7 +91,7 @@ const SimulationPage: React.FC = () => {
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Column - Controls and Module Parameters */}
-        <div className="xl:col-span-1 space-y-6">
+        <div className="xl:col-span-1 space-y-6 xl:self-start">
           <ModuleSelector
             selectedModule={selectedModule}
             onModuleSelect={handleModuleSelect}
@@ -107,7 +107,7 @@ const SimulationPage: React.FC = () => {
         </div>
 
         {/* Right Column - Charts */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6 xl:self-start">
           {/* I-V Curve Chart */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-slate-800 mb-4">I-V Curve</h2>
@@ -216,23 +216,6 @@ const SimulationPage: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Reserved Space for Future Features */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-slate-700">Additional Information</h3>
-            <p className="text-sm text-slate-600 mt-1">
-              Reserved space for future enhancements and additional simulation data.
-            </p>
-          </div>
-          <div className="text-slate-400">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-            </svg>
           </div>
         </div>
       </div>

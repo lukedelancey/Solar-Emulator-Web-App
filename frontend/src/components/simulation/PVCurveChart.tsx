@@ -93,7 +93,7 @@ const PVCurveChart: React.FC<PVCurveChartProps> = ({ simulationData, isLoading =
       </div>
 
       {/* Chart */}
-      <div className="h-96 w-full">
+      <div className="h-[398px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -144,36 +144,15 @@ const PVCurveChart: React.FC<PVCurveChartProps> = ({ simulationData, isLoading =
         </ResponsiveContainer>
       </div>
 
-      {/* Legend and Key Information */}
-      <div className="mt-4">
-        <div className="flex flex-wrap gap-4 justify-center text-sm mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-0.5 bg-emerald-600"></div>
-            <span className="text-slate-600">P-V Curve</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
-            <span className="text-slate-600">Maximum Power Point</span>
-          </div>
+      {/* Legend */}
+      <div className="mt-4 flex flex-wrap gap-4 justify-center text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-0.5 bg-emerald-600"></div>
+          <span className="text-slate-600">P-V Curve</span>
         </div>
-
-        {/* Performance Summary */}
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4">
-          <h4 className="font-medium text-emerald-900 mb-2">Performance Summary</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="text-center">
-              <div className="text-lg font-bold text-emerald-700">{mpp.power.toFixed(1)} W</div>
-              <div className="text-emerald-600">Maximum Power</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-emerald-700">{fillFactor.toFixed(1)}%</div>
-              <div className="text-emerald-600">Fill Factor</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-emerald-700">{(mpp.power / (simulationData.irradiance / 1000)).toFixed(1)} W/m²</div>
-              <div className="text-emerald-600">Power Density</div>
-            </div>
-          </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+          <span className="text-slate-600">Maximum Power Point</span>
         </div>
       </div>
     </div>
